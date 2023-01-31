@@ -33,7 +33,7 @@
 
 #include "highgui.h"
 #include "cv.h"
-
+#define SEUIL 110
 
 int main()
 { 
@@ -48,6 +48,7 @@ int main()
      IplImage *Image_SOBELX; //image SOBELx
      IplImage *Image_SOBELY; //image SOBELy
      IplImage *Image_SOBEL; //image SOBEL
+     IplImage *Image_MEDIAN; //image MEDIAN
 	 
     // Capture vidéo
     CvCapture *capture;
@@ -59,7 +60,9 @@ int main()
 	uchar *Data_sobelX;					// pointeur des données Image_SOBELx
 	uchar *Data_sobelY;					// pointeur des données Image_SOBELy
 	uchar *Data_sobel;					// pointeur des données Image_SOBEL
-	int i,j,k,t;							// indices
+	uchar *Data_median;					// pointeur des données Image_MEDIAN
+	int i,j,k,t,c,y;							// indices
+	int matrice[9];
  
     // Ouvrir le flux vidéo
     //capture = cvCreateFileCapture("/path/to/your/video/test.avi"); // chemin pour un fichier
@@ -83,6 +86,7 @@ int main()
     cvNamedWindow("Image_SOBELX_Window", CV_WINDOW_AUTOSIZE); 	// Image_SOBELX
     cvNamedWindow("Image_SOBELY_Window", CV_WINDOW_AUTOSIZE); 	// Image_SOBELY
     cvNamedWindow("Image_SOBEL_Window", CV_WINDOW_AUTOSIZE); 	// Image_SOBEL
+    cvNamedWindow("Image_MEDIAN_Window", CV_WINDOW_AUTOSIZE); 	// Image_MEDIAN
 
     // Positionnement des fenêtres
     cvMoveWindow("Image_IN_Window", 0,0);
@@ -99,7 +103,8 @@ int main()
     Image_OUT = cvCreateImage(cvSize(Image_IN->width,Image_IN->height),  IPL_DEPTH_8U, 1); 
     Image_SOBELX = cvCreateImage(cvSize(Image_IN->width,Image_IN->height),  IPL_DEPTH_8U, 1); //Création image SobelX
     Image_SOBELY = cvCreateImage(cvSize(Image_IN->width,Image_IN->height),  IPL_DEPTH_8U, 1); //Création image SobelY
-    Image_SOBEL = cvCreateImage(cvSize(Image_IN->width,Image_IN->height),  IPL_DEPTH_8U, 1); //Création image Sobel	
+    Image_SOBEL = cvCreateImage(cvSize(Image_IN->width,Image_IN->height),  IPL_DEPTH_8U, 1); //Création image Sobel
+    Image_MEDIAN = cvCreateImage(cvSize(Image_IN->width,Image_IN->height),  IPL_DEPTH_8U, 1); //Création image Sobel	
     int step_gray = Image_OUT->widthStep/sizeof(uchar);
 
     // Boucle tant que l'utilisateur n'appuie pas sur la touche q (ou Q)
@@ -119,27 +124,66 @@ int main()
 	    Data_sobelX = (uchar *) Image_SOBELX->imageData;
 	    Data_sobelY = (uchar *) Image_SOBELY->imageData;
 	    Data_sobel = (uchar *) Image_SOBEL->imageData;
+	    Data_median = (uchar *) Image_MEDIAN->imageData;
+
+		int resultX[height*width];
+		int resultY[height*width];
+		int resultSOBEL[height*width];
 
 	    //conversion RGB en niveau de gris
 	    for(i=0;i<height;i++) 
 		    for(j=0;j<width;j++)
 		    { Data_out[i*step_gray+j]=0.114*Data_in[i*step+j*channels+0]+ 0.587*Data_in[i*step+j*channels+1] + 0.299*Data_in[i*step+j*channels+2];}
 
+	    //CALCUL MEDIAN-------------------------------------------------------------------------------------------
+	for (i=0; i<height; i++){ 
+		    for(t=0; t<width; t++){
+			 if (i==0 || t==0 || i==height-1 || t== width-1){Data_median[i*step_gray+t]=0;}
+			    else{
+				// On rempli un tableau avec la valeur de chacun des 9 pixels
+				matrice[0]= Data_out[(i-1)*step_gray+t-1];
+				matrice[1]= Data_out[(i-1)*step_gray+ t ];
+				matrice[2]= Data_out[(i-1)*step_gray+t+1];
+				matrice[3]= Data_out[  i  *step_gray+t-1];
+				matrice[4]= Data_out[  i  *step_gray+ t ];
+				matrice[5]= Data_out[  i  *step_gray+t+1];
+				matrice[6]= Data_out[(i+1)*step_gray+t-1];
+				matrice[7]= Data_out[(i+1)*step_gray+ t ];
+				matrice[9]= Data_out[(i+1)*step_gray+t+1];
+
+				//Tri du tableau
+				for (y=0; y<8; y++){
+					for(j=i+1; j<9; j++){
+						if (matrice[y]>matrice[j]){
+							c = matrice[y];
+							matrice[y]=matrice[j];
+							matrice[j]=c;
+						}
+		    			}
+				}
+				Data_median[i*step_gray+t]=matrice[4];
+			}
+		}
+	}
+
 	    //CALCUL SOBEL--------------------------------------------------------------------------------------------
 	    for (i=0; i<height; i++){ 
 		    for(t=0; t<width; t++){
 			    if (i==0 || t==0 || i==height-1 || t== width-1){Data_sobelX[i*step_gray+t]=0;}
 			    else{
-				    Data_sobelX[i*step_gray+t]=
-					     Data_out[(i-1)*step_gray+t-1]*-1
-					    +Data_out[(i-1)*step_gray+t  ]*0
-					    +Data_out[(i-1)*step_gray+t+1]*1
-					    +Data_out[  i  *step_gray+t-1]*-2
-					    +Data_out[  i  *step_gray+t  ]*0
-					    +Data_out[  i  *step_gray+t+1]*2
-					    +Data_out[(i+1)*step_gray+t-1]*-1
-					    +Data_out[(i+1)*step_gray+t  ]*0
-					    +Data_out[(i+1)*step_gray+t+1]*1;
+				    resultX[i*step_gray+t]=
+					     Data_median[(i-1)*step_gray+t-1]*-1
+					    +Data_median[(i-1)*step_gray+t  ]*0
+					    +Data_median[(i-1)*step_gray+t+1]*1
+					    +Data_median[  i  *step_gray+t-1]*-2
+					    +Data_median[  i  *step_gray+t  ]*0
+					    +Data_median[  i  *step_gray+t+1]*2
+					    +Data_median[(i+1)*step_gray+t-1]*-1
+					    +Data_median[(i+1)*step_gray+t  ]*0
+					    +Data_median[(i+1)*step_gray+t+1]*1;
+				    
+					if (resultX[i*step_gray+t] >= SEUIL) {Data_sobelX[i*step_gray+t]=255;}
+					else if (resultX[i*step_gray+t] < SEUIL) {Data_sobelX[i*step_gray+t]=0;}
 			    }
 		    }
 	    }
@@ -148,16 +192,20 @@ int main()
 		    for(t=0; t<width; t++){
 			    if (i==0 || t==0 || i==height-1 || t==width-1){Data_sobelY[i*step_gray+t]=0;}
 			    else{
-				    Data_sobelY[i*step_gray+t]=
-					     Data_out[(i-1)*step_gray+t-1]*-1
-					    +Data_out[(i-1)*step_gray+t  ]*-2
-					    +Data_out[(i-1)*step_gray+t+1]*-1
-					    +Data_out[  i  *step_gray+t-1]*0
-					    +Data_out[  i  *step_gray+t  ]*0
-					    +Data_out[  i  *step_gray+t+1]*0
-					    +Data_out[(i+1)*step_gray+t-1]*1
-					    +Data_out[(i+1)*step_gray+t  ]*2
-					    +Data_out[(i+1)*step_gray+t+1]*1;
+				    resultY[i*step_gray+t]=
+					     Data_median[(i-1)*step_gray+t-1]*-1
+					    +Data_median[(i-1)*step_gray+t  ]*-2
+					    +Data_median[(i-1)*step_gray+t+1]*-1
+					    +Data_median[  i  *step_gray+t-1]*0
+					    +Data_median[  i  *step_gray+t  ]*0
+					    +Data_median[  i  *step_gray+t+1]*0
+					    +Data_median[(i+1)*step_gray+t-1]*1
+					    +Data_median[(i+1)*step_gray+t  ]*2
+					    +Data_median[(i+1)*step_gray+t+1]*1;
+					
+					if (resultY[i*step_gray+t] >= SEUIL) {Data_sobelY[i*step_gray+t]=255;}
+					else if (resultY[i*step_gray+t] < SEUIL) {Data_sobelY[i*step_gray+t]=0;}
+
 			    }
 		    }
 	    }
@@ -166,9 +214,12 @@ int main()
 		    for(t=0; t<width; t++){
 			    if (i==0 || t==0 || i==height-1 || t==width-1){Data_sobel[i*step_gray+t]=0;}
 			    else{
-				    Data_sobel[i*step_gray+t]=
-					    sqrt(Data_sobelX[i*step_gray+t]*Data_sobelX[i*step_gray+t]
-						+Data_sobelY[i*step_gray+t]*Data_sobelY[i*step_gray+t]);
+				    resultSOBEL[i*step_gray+t]=
+					    sqrt(resultX[i*step_gray+t]*resultX[i*step_gray+t]
+						+resultY[i*step_gray+t]*resultY[i*step_gray+t]);
+
+					if (resultSOBEL[i*step_gray+t] >= SEUIL) {Data_sobel[i*step_gray+t]=255;}
+					else if (resultSOBEL[i*step_gray+t] < SEUIL) {Data_sobel[i*step_gray+t]=0;}
 			    }
 		    }
 	    }
@@ -180,10 +231,12 @@ int main()
 	    cvShowImage( "Image_OUT_Window", Image_OUT);
 	    // On affiche l'Image_SOBELX
 	    cvShowImage( "Image_SOBELX_Window", Image_SOBELX);
-	    // On affiche l'Image_SOBEL
+	    // On affiche l'Image_SOBELY
 	    cvShowImage( "Image_SOBELY_Window", Image_SOBELY);
 	    // On affiche l'Image_SOBEL 
 	    cvShowImage( "Image_SOBEL_Window", Image_SOBEL);
+	    // On affiche l'Image_MEDIAN 
+	    cvShowImage( "Image_MEDIAN_Window", Image_MEDIAN);
 
 	    // On attend 5ms
 	    ESC_keyboard = cvWaitKey(5);
@@ -199,6 +252,7 @@ int main()
     cvDestroyWindow("Image_SOBELX_Window");  //Destruction image SOBELX
     cvDestroyWindow("Image_SOBELY_Window");  //Destruction image SOBELY
     cvDestroyWindow("Image_SOBEL_Window");  //Destruction image SOBEL
+    cvDestroyWindow("Image_MEDIAN_Window");  //Destruction image MEDIAN
 
     return 0;
 
