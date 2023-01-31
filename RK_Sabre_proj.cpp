@@ -171,16 +171,15 @@ int main()
 		    for(t=0; t<width; t++){
 			    if (i==0 || t==0 || i==height-1 || t== width-1){Data_sobelX[i*step_gray+t]=0;}
 			    else{
-				    resultX[i*step_gray+t]=
-					     Data_median[(i-1)*step_gray+t-1]*-1
-					    +Data_median[(i-1)*step_gray+t  ]*0
-					    +Data_median[(i-1)*step_gray+t+1]*1
-					    +Data_median[  i  *step_gray+t-1]*-2
-					    +Data_median[  i  *step_gray+t  ]*0
+				    
+
+					resultX[i*step_gray+t]=
+					     Data_median[(i-1)*step_gray+t-1]
+					    +Data_median[  i  *step_gray+t-1]*2
+					    +Data_median[(i+1)*step_gray+t-1]
+					    +(Data_median[(i-1)*step_gray+t+1]
 					    +Data_median[  i  *step_gray+t+1]*2
-					    +Data_median[(i+1)*step_gray+t-1]*-1
-					    +Data_median[(i+1)*step_gray+t  ]*0
-					    +Data_median[(i+1)*step_gray+t+1]*1;
+					    +Data_median[(i+1)*step_gray+t+1])*-1;
 				    
 					if (resultX[i*step_gray+t] >= SEUIL) {Data_sobelX[i*step_gray+t]=255;}
 					else if (resultX[i*step_gray+t] < SEUIL) {Data_sobelX[i*step_gray+t]=0;}
@@ -193,15 +192,12 @@ int main()
 			    if (i==0 || t==0 || i==height-1 || t==width-1){Data_sobelY[i*step_gray+t]=0;}
 			    else{
 				    resultY[i*step_gray+t]=
-					     Data_median[(i-1)*step_gray+t-1]*-1
-					    +Data_median[(i-1)*step_gray+t  ]*-2
-					    +Data_median[(i-1)*step_gray+t+1]*-1
-					    +Data_median[  i  *step_gray+t-1]*0
-					    +Data_median[  i  *step_gray+t  ]*0
-					    +Data_median[  i  *step_gray+t+1]*0
-					    +Data_median[(i+1)*step_gray+t-1]*1
-					    +Data_median[(i+1)*step_gray+t  ]*2
-					    +Data_median[(i+1)*step_gray+t+1]*1;
+					     Data_median[(i-1)*step_gray+t-1]
+					    +Data_median[(i+1)*step_gray+t-1]*-1
+					    +(Data_median[(i-1)*step_gray+ t ]
+					    +Data_median[(i+1)*step_gray+ t ]*-1)*2
+					    +Data_median[(i-1)*step_gray+t+1]
+					    +Data_median[(i+1)*step_gray+t+1]*-1;
 					
 					if (resultY[i*step_gray+t] >= SEUIL) {Data_sobelY[i*step_gray+t]=255;}
 					else if (resultY[i*step_gray+t] < SEUIL) {Data_sobelY[i*step_gray+t]=0;}
