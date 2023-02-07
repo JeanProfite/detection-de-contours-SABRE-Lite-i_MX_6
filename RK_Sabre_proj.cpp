@@ -82,7 +82,7 @@ int median(int t[], int size, int p) {
 	return t[p - 1];
 }
 
-double racineCarre(double n, float l)
+/*double racineCarre(double n, float l)
 {
     // En supposant que le carré de n n'est que n.
     double x = n;
@@ -90,9 +90,7 @@ double racineCarre(double n, float l)
     // L'estimation fermée sera stockée dans la racine.
     double root;
 	
-    int count=0;
-    while (count<20) {
-	count++;
+    while (1) {
 
         // Calcul du x le plus proche
         root = 0.5 * (x + (n / x));
@@ -105,6 +103,30 @@ double racineCarre(double n, float l)
         x = root;
     }
     return root;
+}*/
+// Retourne la valeur absolue du nombre passé en argument
+//#define abs(x) ((x < 0) ? -(x) : (x))
+ 
+double racineCarre(int a)
+{
+    // Variables
+    double un = 1;
+    double un1 = 1;
+ 
+    // La suite s'arrête lorsque |un1 - un| > precision
+    const double precision = 0.01;
+ 
+    do {
+        // On affecte un + 1 à un
+        un = un1;
+ 
+        // On calcule alors un + 1
+        un1 = (un + (a / un)) / 2;
+     
+    // On répète tant que la précision voulue n'a pas été atteinte
+    } while(abs(un1 - un) > precision);
+ 
+    return un1;
 }
 
 
@@ -136,9 +158,8 @@ int main()
 	uchar *Data_median;					// pointeur des données Image_MEDIAN
 	int i,j,k,t,c,y;							// indices
 	int matrice[9];
-	double resultX, resultY, result;
-	int resultSOBEL;
-	float precision = 1;
+	int resultX, resultY, result, resultSOBEL;
+	//float precision = 1.0;
  
     // Ouvrir le flux vidéo
     capture = cvCreateFileCapture("/home/linaro/Projet_sabre/notre_dame.png"); // chemin pour un fichier
@@ -189,7 +210,7 @@ int main()
     while(ESC_keyboard != 'q' && ESC_keyboard != 'Q') {
 
 	    // On récupère une Image_IN
-	    //Image_IN = cvQueryFrame(capture);
+	    //Image_IN = cvQueryFrame(capture); //Lorsque l'on a une image
 	    // Dimension
 	    height    = Image_IN->height;
 	    width     = Image_IN->width;
@@ -223,7 +244,7 @@ int main()
 				matrice[5]= Data_out[  i  *step_gray+t+1];
 				matrice[6]= Data_out[(i+1)*step_gray+t-1];
 				matrice[7]= Data_out[(i+1)*step_gray+ t ];
-				matrice[9]= Data_out[(i+1)*step_gray+t+1];
+				matrice[8]= Data_out[(i+1)*step_gray+t+1];
 
 				//Tri du tableau
 
@@ -273,8 +294,10 @@ int main()
 
 				    result = resultX*resultX+resultY*resultY;
 
+//Il faudra optimiser le calcul de la racine carré
 				    resultSOBEL=
-					    racineCarre(result, precision); //Il faudra optimiser le calcul de la racine carré
+					    //abs(resultX)+abs(resultY);
+					    racineCarre(result); //si on veut faire l'approximation de Newton 
 
 					if (resultSOBEL >= SEUIL) {Data_sobel[i*step_gray+t]=255;}
 					else {Data_sobel[i*step_gray+t]=0;}
