@@ -30,10 +30,83 @@
 #include <stdio.h>
 #include <stdlib.h>
 // OpenCV header
+#include <bits/stdc++.h>
+using namespace std;
 
 #include "highgui.h"
 #include "cv.h"
-#define SEUIL 110
+#define SEUIL 120
+
+/*int intComparator ( const void * first, const void * second ) {
+    int firstInt = * (const int *) first;
+    int secondInt = * (const int *) second;
+    return firstInt - secondInt;
+}*/
+
+#include <stdio.h>
+
+int median(int t[], int size, int p) {
+	int i, j, k, v;
+
+	// Phase I.
+	// on trie les p premieres valeurs
+	for (i = 1; i < p; i++) {
+		v = t[i];
+		j = i;
+		k = i - 1;
+		while (k >= 0 && t[k] > v) {
+			t[j] = t[k];
+			j = k;
+			k = k - 1;
+		}
+		t[j] = v;
+	}
+
+	// Phase II.
+	// on parcourt le reste du tableau faisant en sorte
+	// d'avoir les p plus petites valeurs du tableau triées
+	// et dans les p premières cellules
+	for (i = p; i < size; i++) {
+		v = t[i];
+		j = i;
+		k = p - 1; // différence avec partie I.
+		while (k >= 0 && t[k] > v) {
+			t[j] = t[k];
+			j = k;
+			k = k - 1;
+		}
+		t[j] = v;
+	}
+
+	// La p-ème valeur se trouve à la bonne place.
+	return t[p - 1];
+}
+
+double racineCarre(double n, float l)
+{
+    // En supposant que le carré de n n'est que n.
+    double x = n;
+
+    // L'estimation fermée sera stockée dans la racine.
+    double root;
+	
+    int count=0;
+    while (count<20) {
+	count++;
+
+        // Calcul du x le plus proche
+        root = 0.5 * (x + (n / x));
+
+        // Vérification de la proximité
+        if (abs(root - x) < l)
+            break;
+
+        // Actualisation de root
+        x = root;
+    }
+    return root;
+}
+
 
 int main()
 { 
@@ -63,13 +136,16 @@ int main()
 	uchar *Data_median;					// pointeur des données Image_MEDIAN
 	int i,j,k,t,c,y;							// indices
 	int matrice[9];
+	double resultX, resultY, result;
+	int resultSOBEL;
+	float precision = 1;
  
     // Ouvrir le flux vidéo
-    //capture = cvCreateFileCapture("/path/to/your/video/test.avi"); // chemin pour un fichier
+    capture = cvCreateFileCapture("/home/linaro/Projet_sabre/notre_dame.png"); // chemin pour un fichier
     //capture = cvCreateFileCapture("/dev/v4l/by-id/usb-046d_HD_Pro_Webcam_C920_*");
     //capture = cvCreateFileCapture("/dev/v4l/by-path/platform-ci_hdrc.1-usb-0\:1.1\:1.0-video-index0");
     //capture = cvCreateFileCapture("/dev/web_cam0");
-    capture = cvCreateCameraCapture( CV_CAP_ANY );
+    //capture = cvCreateCameraCapture( CV_CAP_ANY );
     //capture = cvCreateCameraCapture( 4 );
 
     // Vérifier si l'ouverture du flux est ok
@@ -91,9 +167,11 @@ int main()
     // Positionnement des fenêtres
     cvMoveWindow("Image_IN_Window", 0,0);
     cvMoveWindow("Image_OUT_Window", 0,500);
-    cvMoveWindow("Image_SOBEL_Window", 975,500);
+    cvMoveWindow("Image_SOBEL_Window", 1300,500);
     cvMoveWindow("Image_SOBELX_Window", 650,0);
     cvMoveWindow("Image_SOBELY_Window", 1300,0 );
+    cvMoveWindow("Image_MEDIAN_Window", 650,500 );
+
 
 
     // Première acquisition
@@ -111,7 +189,7 @@ int main()
     while(ESC_keyboard != 'q' && ESC_keyboard != 'Q') {
 
 	    // On récupère une Image_IN
-	    Image_IN = cvQueryFrame(capture);
+	    //Image_IN = cvQueryFrame(capture);
 	    // Dimension
 	    height    = Image_IN->height;
 	    width     = Image_IN->width;
@@ -126,16 +204,12 @@ int main()
 	    Data_sobel = (uchar *) Image_SOBEL->imageData;
 	    Data_median = (uchar *) Image_MEDIAN->imageData;
 
-		int resultX[height*width];
-		int resultY[height*width];
-		int resultSOBEL[height*width];
-
 	    //conversion RGB en niveau de gris
 	    for(i=0;i<height;i++) 
 		    for(j=0;j<width;j++)
 		    { Data_out[i*step_gray+j]=0.114*Data_in[i*step+j*channels+0]+ 0.587*Data_in[i*step+j*channels+1] + 0.299*Data_in[i*step+j*channels+2];}
 
-	    //CALCUL MEDIAN-------------------------------------------------------------------------------------------
+	    //CALCUL MEDIAN------------------------------------------------------------------------------------------- // On doit opti en parallélisant
 	for (i=0; i<height; i++){ 
 		    for(t=0; t<width; t++){
 			 if (i==0 || t==0 || i==height-1 || t== width-1){Data_median[i*step_gray+t]=0;}
@@ -152,7 +226,11 @@ int main()
 				matrice[9]= Data_out[(i+1)*step_gray+t+1];
 
 				//Tri du tableau
-				for (y=0; y<8; y++){
+
+				Data_median[i*step_gray+t]=median(matrice, 9, 5);
+				//qsort( matrice, 9, sizeof(int), intComparator ); // A opti avec le choix du tri du tableau 
+
+				/*for (y=0; y<8; y++){
 					for(j=i+1; j<9; j++){
 						if (matrice[y]>matrice[j]){
 							c = matrice[y];
@@ -160,62 +238,46 @@ int main()
 							matrice[j]=c;
 						}
 		    			}
-				}
-				Data_median[i*step_gray+t]=matrice[4];
+				}*/
+				//Data_median[i*step_gray+t]=matrice[4];
 			}
 		}
 	}
 
-	    //CALCUL SOBEL--------------------------------------------------------------------------------------------
+	    //CALCUL SOBEL-------------------------------------------------------------------------------------------- //Il faudra opti en faissant en parallèle et en se souvenant des cases qu'on utilise plusieurs fois
 	    for (i=0; i<height; i++){ 
 		    for(t=0; t<width; t++){
-			    if (i==0 || t==0 || i==height-1 || t== width-1){Data_sobelX[i*step_gray+t]=0;}
+			    if (i==0 || t==0 || i==height-1 || t== width-1){Data_sobel[i*step_gray+t]=0;} // IL faudra optimiser les effets de bord
 			    else{
-				    
-
-					resultX[i*step_gray+t]=
+				     resultX=
 					     Data_median[(i-1)*step_gray+t-1]
 					    +Data_median[  i  *step_gray+t-1]*2
 					    +Data_median[(i+1)*step_gray+t-1]
-					    +(Data_median[(i-1)*step_gray+t+1]
+					    -(Data_median[(i-1)*step_gray+t+1]
 					    +Data_median[  i  *step_gray+t+1]*2
-					    +Data_median[(i+1)*step_gray+t+1])*-1;
+					    +Data_median[(i+1)*step_gray+t+1]);
 				    
-					if (resultX[i*step_gray+t] >= SEUIL) {Data_sobelX[i*step_gray+t]=255;}
-					else if (resultX[i*step_gray+t] < SEUIL) {Data_sobelX[i*step_gray+t]=0;}
-			    }
-		    }
-	    }
-
-	    for (i=0; i<height; i++){ 
-		    for(t=0; t<width; t++){
-			    if (i==0 || t==0 || i==height-1 || t==width-1){Data_sobelY[i*step_gray+t]=0;}
-			    else{
-				    resultY[i*step_gray+t]=
+					if (resultX >= SEUIL) {Data_sobelX[i*step_gray+t]=255;}
+					else {Data_sobelX[i*step_gray+t]=0;}
+			   
+				    resultY=
 					     Data_median[(i-1)*step_gray+t-1]
-					    +Data_median[(i+1)*step_gray+t-1]*-1
+					    -Data_median[(i+1)*step_gray+t-1]
 					    +(Data_median[(i-1)*step_gray+ t ]
 					    +Data_median[(i+1)*step_gray+ t ]*-1)*2
 					    +Data_median[(i-1)*step_gray+t+1]
-					    +Data_median[(i+1)*step_gray+t+1]*-1;
+					    -Data_median[(i+1)*step_gray+t+1];
 					
-					if (resultY[i*step_gray+t] >= SEUIL) {Data_sobelY[i*step_gray+t]=255;}
-					else if (resultY[i*step_gray+t] < SEUIL) {Data_sobelY[i*step_gray+t]=0;}
+					if (resultY >= SEUIL) {Data_sobelY[i*step_gray+t]=255;}
+					else {Data_sobelY[i*step_gray+t]=0;}
 
-			    }
-		    }
-	    }
+				    result = resultX*resultX+resultY*resultY;
 
-	    for (i=0; i<height; i++){ 
-		    for(t=0; t<width; t++){
-			    if (i==0 || t==0 || i==height-1 || t==width-1){Data_sobel[i*step_gray+t]=0;}
-			    else{
-				    resultSOBEL[i*step_gray+t]=
-					    sqrt(resultX[i*step_gray+t]*resultX[i*step_gray+t]
-						+resultY[i*step_gray+t]*resultY[i*step_gray+t]);
+				    resultSOBEL=
+					    racineCarre(result, precision); //Il faudra optimiser le calcul de la racine carré
 
-					if (resultSOBEL[i*step_gray+t] >= SEUIL) {Data_sobel[i*step_gray+t]=255;}
-					else if (resultSOBEL[i*step_gray+t] < SEUIL) {Data_sobel[i*step_gray+t]=0;}
+					if (resultSOBEL >= SEUIL) {Data_sobel[i*step_gray+t]=255;}
+					else {Data_sobel[i*step_gray+t]=0;}
 			    }
 		    }
 	    }
